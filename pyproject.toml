@@ -1,0 +1,21 @@
+[project]
+name = "agendador-whatsapp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "black>=22.1.0",
+    "blue>=0.9.1",
+    "celery>=5.6.3",
+    "dependency-injector>=4.49.1",
+    "django>=6.0.7",
+    "django-ninja>=1.6.2",
+    "dotenv>=0.9.9",
+    "passlib>=1.7.4",
+    "psycopg2-binary>=2.9.12",
+    "pydantic[email]>=2.13.4",
+    "pyjwt>=2.13.0",
+    "redis>=8.0.1",
+    "requests>=2.34.2",
+]
