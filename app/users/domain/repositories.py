@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from typing import List
 from uuid import UUID
 
-from app.users.domain.entities import RefreshTokenEntity, UserEntity
+from app.users.domain.entities import ContactEntity, RefreshTokenEntity, UserEntity
+from app.users.domain.value_objects import PhoneNumberVO
 
 
 class IUserRepository(ABC):
@@ -23,6 +25,24 @@ class IUserRepository(ABC):
 
     @abstractmethod
     def verify_user_exists(self, id: UUID) -> bool:
+        ...
+
+
+class IContactsRepository(ABC):
+    @abstractmethod
+    def save(self, entity: ContactEntity) -> ContactEntity:
+        ...
+
+    @abstractmethod
+    def find_by_id(self, id: UUID) -> ContactEntity | None:
+        ...
+
+    @abstractmethod
+    def find_by_number(self, number: PhoneNumberVO) -> ContactEntity | None:
+        ...
+
+    @abstractmethod
+    def list_by_user(self, id: UUID) -> List[ContactEntity]:
         ...
 
 
