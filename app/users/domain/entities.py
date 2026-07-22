@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from core.exceptions import BaseDomainException
+from core.exceptions import BaseDomainException, FieldRequiredException
 
 
 @dataclass
@@ -29,6 +29,22 @@ class UserEntity:
 
     def change_session_status(self, status: bool):
         self.session_started = status
+
+
+@dataclass
+class ContactEntity:
+    id: UUID = field(default_factory=uuid4)
+    name: str = field(default='')
+    number: str = field(default='')
+    lid: str = field(default='')
+    user: UUID | None = field(default=None)
+    created_at: datetime = field(default_factory=datetime.now)
+
+    def change_name(self, name: str):
+        if not name: 
+            raise FieldRequiredException("name is required")
+
+        self.name = name
 
 
 @dataclass
