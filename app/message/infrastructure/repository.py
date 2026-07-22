@@ -15,7 +15,9 @@ class MessagesRepository(IMessagesRepository):
             id=message.id,
             defaults={
                 'message': message.message,
-                'scheduled_at': message.scheduled_at.value if message.scheduled_at else None,
+                'scheduled_at': message.scheduled_at.value
+                if message.scheduled_at
+                else None,
                 'number': message.number,
                 'session': message.session,
                 'status': message.status,
@@ -42,7 +44,9 @@ class MessagesRepository(IMessagesRepository):
         except Message.DoesNotExist:
             return []
 
-    def list_messages_by_time(self, now: ScheduledAtTime) -> List[MessageEntity]:
+    def list_messages_by_time(
+        self, now: ScheduledAtTime
+    ) -> List[MessageEntity]:
         return [
             self._to_model(model)
             for model in Message.objects.filter(
@@ -63,7 +67,9 @@ class MessagesRepository(IMessagesRepository):
         return MessageEntity(
             id=model.id,
             message=model.message,
-            scheduled_at=ScheduledAtTime(value=model.scheduled_at) if model.scheduled_at else None,
+            scheduled_at=ScheduledAtTime(value=model.scheduled_at)
+            if model.scheduled_at
+            else None,
             number=model.number,
             session=model.session,  # type: ignore
             status=model.status,

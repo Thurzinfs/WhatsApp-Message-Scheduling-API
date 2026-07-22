@@ -10,7 +10,12 @@ class ScheduledAtTime:
 
     def __post_init__(self):
         if isinstance(self.value, (int, float)):
-            object.__setattr__(self, 'value', datetime.fromtimestamp(self.value, tz=timezone.utc))
+            object.__setattr__(
+                self,
+                'value',
+                datetime.fromtimestamp(self.value, tz=timezone.utc),
+            )
         elif isinstance(self.value, str):
-            object.__setattr__(self, 'value', datetime.fromisoformat(self.value))
-    
+            object.__setattr__(
+                self, 'value', datetime.fromisoformat(self.value)
+            )

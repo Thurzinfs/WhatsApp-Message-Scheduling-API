@@ -20,7 +20,9 @@ class IMessagesRepository(ABC):
         ...
 
     @abstractmethod
-    def list_messages_by_time(self, now: ScheduledAtTime) -> List[MessageEntity]:
+    def list_messages_by_time(
+        self, now: ScheduledAtTime
+    ) -> List[MessageEntity]:
         ...
 
     @abstractmethod

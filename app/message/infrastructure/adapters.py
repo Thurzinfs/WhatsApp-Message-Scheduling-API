@@ -29,7 +29,9 @@ class WahaMessageAdapter(IWahaMessageAdapter):
                     'session': session,
                 },
             )
-            print(f'[DEBUG] status={response.status_code} body={response.text}')
+            print(
+                f'[DEBUG] status={response.status_code} body={response.text}'
+            )
 
             response.raise_for_status()
         except requests.ConnectTimeout as e:
@@ -91,14 +93,12 @@ class WahaMessageAdapter(IWahaMessageAdapter):
 
         except requests.ConnectTimeout as e:
             raise e
-        
+
     def delete_session(self, session: str):
         try:
             response = self.http.delete(
                 url=f'{self.base_url}/api/sessions/{session}',
-                json={
-                    'session': session
-                }
+                json={'session': session},
             )
             response.raise_for_status()
 

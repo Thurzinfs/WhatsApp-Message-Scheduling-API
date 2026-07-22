@@ -43,7 +43,9 @@ class UserContainer(containers.DeclarativeContainer):
     )
 
     deactive_user_use_case = providers.Factory(
-        DeactiveUserUseCase, user_repo=user_repo, waha_adapter=core.waha_adapter
+        DeactiveUserUseCase,
+        user_repo=user_repo,
+        waha_adapter=core.waha_adapter,
     )
 
     login_use_case = providers.Factory(

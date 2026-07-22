@@ -90,7 +90,9 @@ class ResponseUserByEmailUseCase:
 
 
 class DeactiveUserUseCase:
-    def __init__(self, user_repo: IUserRepository, waha_adapter: IWahaMessageAdapter) -> None:
+    def __init__(
+        self, user_repo: IUserRepository, waha_adapter: IWahaMessageAdapter
+    ) -> None:
         self.user_repo = user_repo
         self.waha_adapter = waha_adapter
 
@@ -98,7 +100,7 @@ class DeactiveUserUseCase:
         user = self.user_repo.find_by_id(id)
         if not user:
             raise UserNotFoundException('user not found')
-        
+
         self.waha_adapter.delete_session(user.session)
 
         user.delete()

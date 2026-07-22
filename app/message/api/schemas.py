@@ -17,7 +17,9 @@ class MessageInSchema(Schema):
 
     def to_dto(self) -> MessageInDTO:
         return MessageInDTO(
-            message=self.message, scheduled_at=self.scheduled_at, number=self.number
+            message=self.message,
+            scheduled_at=self.scheduled_at,
+            number=self.number,
         )
 
 

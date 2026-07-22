@@ -44,13 +44,17 @@ class SendMessageUseCase:
             return
 
         self.message_repo.save(message)
-        self.sender.send_message(message.number, message.message, message.session)
-        
+        self.sender.send_message(
+            message.number, message.message, message.session
+        )
+
         message.change_status(StatusMessage.sent)
 
 
 class RegisterMessageUseCase:
-    def __init__(self, message_repo: IMessagesRepository, user_repo: IUserRepository) -> None:
+    def __init__(
+        self, message_repo: IMessagesRepository, user_repo: IUserRepository
+    ) -> None:
         self.message_repo = message_repo
         self.user_repo = user_repo
 
