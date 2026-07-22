@@ -1,11 +1,14 @@
+from typing import List
 from uuid import UUID
 
-from app.users.domain.entities import RefreshTokenEntity, UserEntity
+from app.users.domain.entities import ContactEntity, RefreshTokenEntity, UserEntity
 from app.users.domain.repositories import (
+    IContactsRepository,
     IRefreshTokenRepository,
     IUserRepository,
 )
-from app.users.infrastructure.models import RefreshToken, User
+from app.users.domain.value_objects import PhoneNumberVO
+from app.users.infrastructure.models import Contact, RefreshToken, User
 
 
 class UserRepository(IUserRepository):
@@ -58,6 +61,56 @@ class UserRepository(IUserRepository):
             session_started=model.session_started,
             created_at=model.created_at,
             deleted_at=model.deleted_at,
+        )
+
+
+class ContactRepository(IContactsRepository):
+    def save(self, entity: ContactEntity) -> ContactEntity:
+        Contact.objects.update_or_create(
+            id=entity.id,
+            defaults={
+                'name': entity.name,
+                'number': entity.number.value if entity.number else None,
+                'lid': entity.lid,
+                'user_id': entity.user,
+                'created_at': entity.created_at                
+            }
+        )
+
+        return entity
+
+    def find_by_id(self, id: UUID) -> ContactEntity | None:
+        try:
+            return self._to_entity(Contact.objects.get(id=id))
+
+        except Contact.DoesNotExist:
+            return None
+
+    def find_by_number(self, number: PhoneNumberVO) -> ContactEntity | None:
+        try:
+            return self._to_entity(Contact.objects.get(number=number))
+
+        except Contact.DoesNotExist:
+            return None
+
+    def list_by_user(self, id: UUID) -> List[ContactEntity]:
+        try:
+            return [
+                self._to_entity(model)
+                for model in Contact.objects.filter(user=id).all()
+            ]
+
+        except Contact.DoesNotExist:
+            return []
+
+    def _to_entity(self, model: Contact) -> ContactEntity:
+        return ContactEntity(
+            id=model.id,
+            name=model.name,
+            number=PhoneNumberVO(value=model.number),
+            lid=model.lid,
+            user=model.user,
+            created_at=model.created_at
         )
 
 
