@@ -39,6 +39,35 @@ class UserOutDTO(BaseModel):
         )
 
 
+class ContactInDTO(BaseModel):
+    name: str
+    number: str
+    lid: str
+    user: UUID
+
+
+class CotnactOutDTO(BaseModel):
+    id: UUID
+    name: str
+    number: str
+    lid: str
+    user: UUID
+
+    @classmethod
+    def from_domain(cls, contact_entity):
+        return cls(
+            id=contact_entity.id,
+            name=contact_entity.name,
+            number=contact_entity.number,
+            lid=contact_entity.lid,
+            user=contact_entity.user
+        )
+
+
+class ContactUpdateInDTO(BaseModel):
+    name: Optional[str] = None
+
+
 class LoginInDTO(BaseModel):
     email: str
     password: str
