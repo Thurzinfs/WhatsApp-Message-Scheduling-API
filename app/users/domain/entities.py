@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from app.users.domain.value_objects import PhoneNumberVO
 from core.exceptions import BaseDomainException, FieldRequiredException
 
 
@@ -35,7 +36,7 @@ class UserEntity:
 class ContactEntity:
     id: UUID = field(default_factory=uuid4)
     name: str = field(default='')
-    number: str = field(default='')
+    number: PhoneNumberVO | None = field(default=None)
     lid: str = field(default='')
     user: UUID | None = field(default=None)
     created_at: datetime = field(default_factory=datetime.now)
