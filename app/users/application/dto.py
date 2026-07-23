@@ -19,6 +19,7 @@ class UserOutDTO(BaseModel):
     connected: bool
     session: str
     session_started: bool
+    access_contacts: bool
     created_at: str
     deleted_at: str | None = None
 
@@ -32,6 +33,7 @@ class UserOutDTO(BaseModel):
             connected=user_entity.connected,
             session=user_entity.session,
             session_started=user_entity.session_started,
+            access_contacts=user_entity.access_contacts,
             created_at=user_entity.created_at.isoformat(),
             deleted_at=user_entity.deleted_at.isoformat()
             if user_entity.deleted_at
@@ -42,24 +44,23 @@ class UserOutDTO(BaseModel):
 class ContactInDTO(BaseModel):
     name: str
     number: str
-    lid: str
     user: UUID
 
 
-class CotnactOutDTO(BaseModel):
+class ContactOutDTO(BaseModel):
     id: UUID
+    contact_id: str
     name: str
     number: str
-    lid: str
     user: UUID
 
     @classmethod
     def from_domain(cls, contact_entity):
         return cls(
             id=contact_entity.id,
+            contact_id=contact_entity.contact_id,
             name=contact_entity.name,
             number=contact_entity.number,
-            lid=contact_entity.lid,
             user=contact_entity.user
         )
 
