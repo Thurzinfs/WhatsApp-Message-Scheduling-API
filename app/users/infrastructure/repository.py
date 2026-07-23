@@ -23,6 +23,7 @@ class UserRepository(IUserRepository):
                 'connected': entity.connected,
                 'session': entity.session,
                 'session_started': entity.session_started,
+                'access_contacts': entity.access_contacts,
                 'created_at': entity.created_at,
                 'deleted_at': entity.deleted_at,
             },
@@ -59,6 +60,7 @@ class UserRepository(IUserRepository):
             connected=model.connected,
             session=model.session,
             session_started=model.session_started,
+            access_contacts=model.access_contacts,
             created_at=model.created_at,
             deleted_at=model.deleted_at,
         )
