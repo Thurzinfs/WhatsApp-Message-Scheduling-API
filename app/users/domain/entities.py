@@ -39,9 +39,9 @@ class UserEntity:
 @dataclass
 class ContactEntity:
     id: UUID = field(default_factory=uuid4)
+    contact_id: str = field(default='')
     name: str = field(default='')
-    number: PhoneNumberVO | None = field(default=None)
-    lid: str = field(default='')
+    number: str = field(default='')
     user: UUID | None = field(default=None)
     created_at: datetime = field(default_factory=datetime.now)
 
