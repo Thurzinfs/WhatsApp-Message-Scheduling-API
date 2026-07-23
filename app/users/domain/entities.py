@@ -16,6 +16,7 @@ class UserEntity:
     connected: bool = field(default=False)
     session: str = field(default='')
     session_started: bool = field(default=False)
+    access_contacts: bool = field(default=False)
     created_at: datetime = field(default_factory=datetime.now)
     deleted_at: datetime | None = field(default=None)
 
@@ -30,6 +31,9 @@ class UserEntity:
 
     def change_session_status(self, status: bool):
         self.session_started = status
+
+    def change_permissions(self, access_contacts: bool):
+        self.access_contacts = access_contacts
 
 
 @dataclass
