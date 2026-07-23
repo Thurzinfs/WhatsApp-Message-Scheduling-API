@@ -3,21 +3,69 @@ from uuid import UUID
 from app.message.domain.i_adapters import IWahaMessageAdapter
 from app.message.domain.servicies import IHashService
 from app.users.application.dto import (
+    ContactOutDTO,
     LoginInDTO,
     LoginOutDTO,
-    QrCodeOutDTO,
     RequestCodeOutDTO,
     UserInDTO,
     UserOutDTO,
 )
+from app.users.domain.I_adapter import IContactsSyncTaskAdapter
 from app.users.domain.entities import UserEntity
 from app.users.domain.exceptions import UserNotFoundException
 from app.users.domain.repositories import (
+    IContactsRepository,
     IRefreshTokenRepository,
     IUserRepository,
 )
-from app.users.domain.servicies import ITokenService
+from app.users.domain.servicies import IFilterContactsService, ITokenService
 from core.exceptions import BaseDomainException
+
+
+class EnableSyncContactsUseCase:
+    def __init__(self, user_repo: IUserRepository, task_sync_adapter: IContactsSyncTaskAdapter) -> None:
+        self.user_repo = user_repo
+        self.task_sync_adapter = task_sync_adapter
+
+    def execute(self, id: UUID):
+        user = self.user_repo.find_by_id(id)
+        if not user:
+            raise UserNotFoundException('user not found')
+
+        self.task_sync_adapter.sync(user.id)
+
+        user.change_permissions(access_contacts=True)
+        self.user_repo.save(user)
+
+        return UserOutDTO.from_domain(user)
+
+
+class SyncContactsUserUseCase:
+    def __init__(self, user_repo: IUserRepository, waha_adapter: IWahaMessageAdapter, filter_service: IFilterContactsService, contact_repo: IContactsRepository) -> None:
+        self.user_repo = user_repo
+        self.waha_adapter = waha_adapter
+        self.filter_service = filter_service
+        self.contact_repo = contact_repo
+
+    def execute(self, id: UUID):
+        user = self.user_repo.find_by_id(id)
+        if not user:
+            raise UserNotFoundException('user not found')
+
+        contacts_list = self.waha_adapter.list_contacts(user.session)
+        print(f"[DEBUG] use case sync: {contacts_list}")
+
+        contacts = self.filter_service.list_contacts(
+            contacts_list=contacts_list,
+            id=user.id
+        )
+        print(f"[DEBUG] use case sync filter: {contacts}")
+
+        for contact in contacts:
+            if self.contact_repo.verify_by_id_waha(contact.contact_id) is not None:
+                continue
+
+            self.contact_repo.save(contact)
 
 
 class RegisterUserUseCase:
@@ -197,3 +245,18 @@ class RequestCodeLoginWhatsAppUseCase:
             raise BaseDomainException('error from server')
 
         return RequestCodeOutDTO(code=request.get('code'))  # type: ignore
+
+
+class ListContactsByUserUseCase:
+    def __init__(self, contact_repo: IContactsRepository) -> None:
+        self.contact_repo = contact_repo
+
+    def execute(self, id: UUID):
+        contacts = self.contact_repo.list_by_user(id)
+        if not contacts:
+            return []
+
+        return [
+            ContactOutDTO.from_domain(contact)
+            for contact in contacts
+        ]
