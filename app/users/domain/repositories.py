@@ -38,6 +38,10 @@ class IContactsRepository(ABC):
         ...
 
     @abstractmethod
+    def verify_by_id_waha(self, id_waha: str) -> ContactEntity | None:
+        ...
+
+    @abstractmethod
     def find_by_number(self, number: PhoneNumberVO) -> ContactEntity | None:
         ...
 

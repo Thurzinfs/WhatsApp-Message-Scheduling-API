@@ -71,9 +71,9 @@ class ContactRepository(IContactsRepository):
         Contact.objects.update_or_create(
             id=entity.id,
             defaults={
+                'contact_id': entity.contact_id,
                 'name': entity.name,
-                'number': entity.number.value if entity.number else None,
-                'lid': entity.lid,
+                'number': entity.number,
                 'user_id': entity.user,
                 'created_at': entity.created_at                
             }
@@ -87,6 +87,14 @@ class ContactRepository(IContactsRepository):
 
         except Contact.DoesNotExist:
             return None
+
+    def verify_by_id_waha(self, id_waha: str) -> ContactEntity | None:
+        try:
+            return self._to_entity(Contact.objects.get(contact_id=id_waha))
+
+        except Contact.DoesNotExist:
+            return None
+            
 
     def find_by_number(self, number: PhoneNumberVO) -> ContactEntity | None:
         try:
@@ -108,10 +116,10 @@ class ContactRepository(IContactsRepository):
     def _to_entity(self, model: Contact) -> ContactEntity:
         return ContactEntity(
             id=model.id,
+            contact_id=model.contact_id,  # type: ignore
             name=model.name,
-            number=PhoneNumberVO(value=model.number),
-            lid=model.lid,
-            user=model.user,
+            number=model.number,
+            user=model.user.id,
             created_at=model.created_at
         )
 
