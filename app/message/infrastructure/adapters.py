@@ -1,3 +1,4 @@
+from typing import Any, List
 from uuid import UUID
 
 from app.message.domain.i_adapters import (
@@ -91,6 +92,20 @@ class WahaMessageAdapter(IWahaMessageAdapter):
             response.raise_for_status()
             return response.json()
 
+        except requests.ConnectTimeout as e:
+            raise e
+
+    def list_contacts(self, session: str) -> List[Any]:
+        try:
+            response = self.http.get(
+                url=f'{self.base_url}/api/contacts/all',
+                params={
+                    'session': session
+                }
+            )
+            response.raise_for_status()
+            return response.json()
+        
         except requests.ConnectTimeout as e:
             raise e
 

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any, List
 
 
 class IWahaMessageAdapter(ABC):
@@ -26,6 +27,10 @@ class IWahaMessageAdapter(ABC):
     def send_code_for_login_waha(
         self, session: str, phone: str
     ) -> dict | None:
+        ...
+
+    @abstractmethod
+    def list_contacts(self, session: str) -> List[Any]:
         ...
 
     @abstractmethod
