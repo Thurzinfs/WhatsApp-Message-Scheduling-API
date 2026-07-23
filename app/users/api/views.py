@@ -1,4 +1,5 @@
 import base64
+from typing import List
 from uuid import UUID
 
 from ninja import Router
@@ -6,6 +7,7 @@ from pydantic import EmailStr
 
 from app.users.api.bearer import AuthBearer
 from app.users.api.schemas import (
+    ContactOutSchema,
     LoginInSchema,
     LoginOutSchema,
     QrCodeOutSchema,
@@ -21,6 +23,8 @@ from django.db.transaction import atomic
 router = Router()
 
 auth_router = Router()
+
+contact_router = Router()
 
 
 @router.post('/', response={201: UserOutSchema})
@@ -84,12 +88,45 @@ def login_code_waha(request):
 
 
 @router.delete('/{id}', response={200: UserOutSchema})
+@atomic
 def delete_user(request, id: UUID):
     use_case = container.users.deactive_user_use_case()
 
     user = use_case.execute(id)
 
     return 200, UserOutSchema.from_domain(user)
+
+
+@router.patch('/{id}', response={200: UserOutSchema})
+@atomic
+def enable_permission_sync_contact(request, id: UUID):
+    use_case = container.users.enable_sync_contacts_use_case()
+
+    user = use_case.execute(id)
+
+    return 200, UserOutSchema.from_domain(user)
+
+
+@contact_router.get('/', response={200: None}, auth=AuthBearer())
+@atomic
+def sync_contacts(request):
+    task = container.users.task_sync_adapter()
+
+    task.sync(request.auth.id)
+    return 200, None
+
+
+@contact_router.get('/sync-contacts', response={200: List[ContactOutSchema]}, auth=AuthBearer())
+def list_contacts_by_user(request):
+    use_case = container.users.list_contacts_by_user_use_case()
+
+    contacts = use_case.execute(request.auth.id)
+
+    return 200, [
+        ContactOutSchema.from_domain(contact)
+        for contact in contacts
+    ]
+
 
 
 @auth_router.post('/login', response={201: LoginOutSchema})
