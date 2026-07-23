@@ -27,9 +27,9 @@ class User(models.Model):
 
 class Contact(models.Model):
     id = models.UUIDField(primary_key=True, editable=False)
+    contact_id = models.CharField(max_length=100, null=True)
     name = models.CharField(max_length=130)
-    number = models.CharField(max_length=180)
-    lid = models.CharField(max_length=180)
+    number = models.CharField(max_length=180, unique=True)
     user = models.ForeignKey(
         'users.User',
         on_delete=models.CASCADE
