@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
+from typing import List
+from uuid import UUID, uuid4
 
 from passlib.context import CryptContext
 
-from app.users.domain.entities import UserEntity, RefreshTokenEntity
-from app.users.domain.servicies import IHashService, ITokenService
+from app.users.domain.entities import ContactEntity, UserEntity, RefreshTokenEntity
+from app.users.domain.servicies import IFilterContactsService, IHashService, ITokenService
 
 from config import settings
 
@@ -69,3 +70,27 @@ class HashService(IHashService):
 
     def verify(self, raw_password: str, hashed_password: str) -> bool:
         return pwd_context.verify(raw_password, hashed_password)
+
+
+class FilterContactsService(IFilterContactsService):
+    def list_contacts(self, contacts_list: List, id: UUID) -> List[ContactEntity]:
+        filters = []
+
+        for contact in contacts_list:
+            name = contact.get('name') or contact.get('pushname')
+            contact_id = contact.get('id')
+            number = contact.get('number')
+
+            if not all([name, contact_id, number]):
+                continue
+
+            filters.append(ContactEntity(
+                contact_id=contact_id,
+                name=name,
+                number=number,
+                user=id
+            ))
+
+        print(f"[DEBUG] use case filter list: {filters}")
+
+        return filters
