@@ -98,7 +98,7 @@ class ContactRepository(IContactsRepository):
 
     def find_by_number(self, number: PhoneNumberVO) -> ContactEntity | None:
         try:
-            return self._to_entity(Contact.objects.get(number=number))
+            return self._to_entity(Contact.objects.get(number=number.value))
 
         except Contact.DoesNotExist:
             return None
