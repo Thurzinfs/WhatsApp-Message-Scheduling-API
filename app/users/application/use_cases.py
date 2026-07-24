@@ -53,6 +53,9 @@ class SyncContactsUserUseCase:
         if not user:
             raise UserNotFoundException('user not found')
 
+        if user.access_contacts is False:
+            raise BaseDomainException('user not enabled to sync contacts')
+
         contacts_list = self.waha_adapter.list_contacts(user.session)
         print(f"[DEBUG] use case sync: {contacts_list}")
 
