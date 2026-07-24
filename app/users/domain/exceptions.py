@@ -7,3 +7,7 @@ class UserNotFoundException(BaseDomainException):
 
 class ContactNotFoundException(BaseDomainException):
     pass
+
+
+class ConfigurationUserNotEnabledException(BaseDomainException):
+    pass
