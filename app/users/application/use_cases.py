@@ -12,13 +12,14 @@ from app.users.application.dto import (
 )
 from app.users.domain.I_adapter import IContactsSyncTaskAdapter
 from app.users.domain.entities import UserEntity
-from app.users.domain.exceptions import UserNotFoundException
+from app.users.domain.exceptions import ContactNotFoundException, UserNotFoundException
 from app.users.domain.repositories import (
     IContactsRepository,
     IRefreshTokenRepository,
     IUserRepository,
 )
 from app.users.domain.servicies import IFilterContactsService, ITokenService
+from app.users.domain.value_objects import PhoneNumberVO
 from core.exceptions import BaseDomainException
 
 
@@ -260,3 +261,27 @@ class ListContactsByUserUseCase:
             ContactOutDTO.from_domain(contact)
             for contact in contacts
         ]
+    
+
+class ResponseContactByIDUseCase:
+    def __init__(self, contact_repo: IContactsRepository) -> None:
+        self.contact_repo = contact_repo
+
+    def execute(self, id: UUID):
+        contact = self.contact_repo.find_by_id(id)
+        if not contact:
+            raise ContactNotFoundException('contact not found')
+
+        return ContactOutDTO.from_domain(contact)
+
+
+class ResponsenContactByNumberUseCase:
+    def __init__(self, contact_repo: IContactsRepository) -> None:
+        self.contact_repo = contact_repo
+
+    def execute(self, number: str):
+        contact = self.contact_repo.find_by_number(PhoneNumberVO(number))
+        if not contact:
+            raise ContactNotFoundException('contact not found')
+
+        return ContactOutDTO.from_domain(contact)
