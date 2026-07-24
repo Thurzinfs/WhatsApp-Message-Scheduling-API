@@ -8,8 +8,10 @@ from app.users.application.use_cases import (
     LoginWahaForWhatsAppQrCodeUseCase,
     RegisterUserUseCase,
     RequestCodeLoginWhatsAppUseCase,
+    ResponseContactByIDUseCase,
     ResponseUserByEmailUseCase,
     ResponseUserByIDUseCase,
+    ResponsenContactByNumberUseCase,
     SyncContactsUserUseCase,
 )
 from app.users.infrastructure.adapters import ContactsSyncTaskAdapter
@@ -95,5 +97,15 @@ class UserContainer(containers.DeclarativeContainer):
 
     list_contacts_by_user_use_case = providers.Factory(
         ListContactsByUserUseCase,
+        contact_repo=contact_repo
+    )
+
+    response_contact_by_id = providers.Factory(
+        ResponseContactByIDUseCase,
+        contact_repo=contact_repo
+    )
+
+    response_contact_by_number = providers.Factory(
+        ResponsenContactByNumberUseCase,
         contact_repo=contact_repo
     )
