@@ -186,11 +186,13 @@ class UserEntity:
     connected: bool
     session: str
     session_started: bool
+    access_contacts: bool
     created_at: datetime
     deleted_at: datetime | None
 ```
 
-**Métodos:** `delete()` (soft delete), `change_connection_status()`, `change_session_status()`
+**Métodos:** `delete()` (soft delete), `change_connection_status()`, `change_session_status()`, `change_permissions()`
+**Atributos:** `access_contacts` controla se o usuário tem permissão de sincronizar contatos do WhatsApp.
 A sessão é gerada automaticamente no formato `session_{id}`.
 
 ### `RefreshTokenEntity`
@@ -207,6 +209,22 @@ class RefreshTokenEntity:
 ```
 
 **Métodos:** `revoked_token()`, `is_valid()`
+
+### `ContactEntity`
+
+```python
+@dataclass
+class ContactEntity:
+    id: UUID
+    contact_id: str
+    name: str
+    number: str
+    user: UUID | None
+    created_at: datetime
+```
+
+**Métodos:** `change_name()`
+**Validações:** `name` é obrigatório. Cada contato é associado a um usuário e vinculado ao ID do WhatsApp via `contact_id`.
 
 ---
 
@@ -337,6 +355,52 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
   2. Sistema requisita o código à Waha API
   3. Sistema retorna o código para o usuário inserir no WhatsApp
 
+#### UC13 · Habilitar Sincronização de Contatos — `EnableSyncContactsUseCase`
+- **Ator:** Usuário autenticado
+- **Objetivo:** Permitir que o sistema sincronize os contatos do WhatsApp do usuário
+- **Pré-condição:** Usuário autenticado e conectado ao WhatsApp
+- **Cenário principal:**
+  1. Usuário solicita a ativação da sincronização de contatos
+  2. Sistema dispara a tarefa de sincronização via Celery
+  3. Sistema atualiza a permissão `access_contacts = True`
+  4. Sistema persiste a alteração
+
+#### UC14 · Sincronizar Contatos do Usuário — `SyncContactsUserUseCase`
+- **Ator:** Sistema (Celery Worker)
+- **Objetivo:** Buscar e armazenar os contatos da sessão de WhatsApp do usuário
+- **Pré-condição:** Usuário existe e possui sessão Waha conectada, `access_contacts = True`
+- **Cenário principal:**
+  1. Sistema requisita a lista de contatos à Waha API
+  2. Sistema filtra contatos já existentes no banco
+  3. Sistema persiste os novos contatos associando-os ao usuário
+
+#### UC15 · Listar Contatos do Usuário — `ListContactsByUserUseCase`
+- **Ator:** Usuário autenticado
+- **Objetivo:** Obter a lista de contatos sincronizados do usuário
+- **Pré-condição:** Usuário autenticado e com contatos sincronizados
+- **Cenário principal:**
+  1. Usuário solicita a lista de seus contatos
+  2. Sistema busca todos os contatos associados ao usuário
+  3. Sistema retorna a lista de contatos
+
+#### UC16 · Consultar Contato por ID — `ResponseContactByIDUseCase`
+- **Ator:** Usuário
+- **Objetivo:** Obter os dados de um contato específico
+- **Cenário principal:**
+  1. Solicitante informa o ID do contato
+  2. Sistema busca e valida a existência do contato
+  3. Sistema retorna os dados do contato
+- **Extensões:** *2a.* Contato não encontrado → `ContactNotFoundException`
+
+#### UC17 · Consultar Contato por Número — `ResponsenContactByNumberUseCase`
+- **Ator:** Usuário
+- **Objetivo:** Localizar um contato a partir do número de telefone
+- **Cenário principal:**
+  1. Solicitante informa o número de telefone
+  2. Sistema busca e valida a existência do contato
+  3. Sistema retorna os dados do contato
+- **Extensões:** *2a.* Contato não encontrado → `ContactNotFoundException`
+
 ---
 
 ## 🔌 Endpoints da API
@@ -359,6 +423,7 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 | GET | `/users/{id}` | ❌ | 200 | Obter usuário por ID |
 | GET | `/users/email` | ❌ | 200 | Obter usuário por e-mail |
 | DELETE | `/users/{id}` | ❌ | 200 | Deletar usuário (soft delete) |
+| PATCH | `/users/{id}` | ❌ | 200 | Habilitar sincronização de contatos |
 | GET | `/users/login/qr-code` | ✅ JWT | 200 | Obter QR code do WhatsApp |
 | GET | `/users/login/request-code` | ✅ JWT | 200 | Obter código de verificação |
 
@@ -369,6 +434,15 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 | POST | `/message/` | ✅ JWT | 201 | Agendar nova mensagem |
 | GET | `/message/{id}` | ❌ | 200 | Obter mensagem por ID |
 | GET | `/message/list` | ❌ | 200 | Listar mensagens por número |
+
+### Contatos (`/contacts`)
+
+| Método | Rota | Auth | Status | Descrição |
+|---|---|---|---|---|
+| GET | `/contacts/sync` | ✅ JWT | 200 | Sincronizar contatos do WhatsApp |
+| GET | `/contacts/list/sync-contacts` | ✅ JWT | 200 | Listar contatos sincronizados |
+| GET | `/contacts/id` | ❌ | 200 | Obter contato por ID |
+| GET | `/contacts/` | ❌ | 200 | Obter contato por número | 
 
 ### Exemplos de Requisição
 
@@ -454,6 +528,46 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 ```
 </details>
 
+<details>
+<summary><strong>PATCH /users/{id}</strong></summary>
+
+```json
+// Header: Authorization: Bearer eyJhbGc...
+// Response 200
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "João Silva",
+  "email": "joao@example.com",
+  "phone": "5511999999999",
+  "connected": true,
+  "session": "session_550e8400-e29b-41d4-a716-446655440000",
+  "session_started": true,
+  "access_contacts": true,
+  "created_at": "2024-07-22T10:30:00",
+  "deleted_at": null
+}
+```
+</details>
+
+<details>
+<summary><strong>GET /contacts/list/sync-contacts</strong></summary>
+
+```json
+// Header: Authorization: Bearer eyJhbGc...
+// Response 200
+[
+  {
+    "id": "770e8400-e29b-41d4-a716-446655440002",
+    "contact_id": "5511999888888@c.us",
+    "name": "Maria Santos",
+    "number": "5511999888888",
+    "user": "550e8400-e29b-41d4-a716-446655440000",
+    "created_at": "2024-07-22T11:15:00"
+  }
+]
+```
+</details>
+
 ---
 
 ## 📊 Banco de Dados
@@ -483,6 +597,17 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 | `revoked` | BOOLEAN | ❌ | - | Token revogado |
 | `created_at` | DATETIME | ❌ | - | Data de criação |
 | `expire_at` | DATETIME | ❌ | - | Data de expiração |
+
+### `contacts`
+
+| Campo | Tipo | Null | Chave | Descrição |
+|---|---|---|---|---|
+| `id` | UUID | ❌ | PK | Identificador único |
+| `contact_id` | VARCHAR(100) | ✅ | - | ID do contato no WhatsApp (Waha) |
+| `name` | VARCHAR(130) | ❌ | - | Nome do contato |
+| `number` | VARCHAR(180) | ❌ | UNIQUE | Número de telefone |
+| `user_id` | UUID | ❌ | FK → users.id | Usuário proprietário |
+| `created_at` | DATETIME | ❌ | - | Data de sincronização |
 
 ### `messages`
 
@@ -525,6 +650,8 @@ O middleware `AuthBearer` decodifica o JWT, busca o usuário no banco e injeta o
 - `GET /users/login/qr-code`
 - `GET /users/login/request-code`
 - `POST /message/`
+- `GET /contacts/sync`
+- `GET /contacts/list/sync-contacts`
 
 ---
 
@@ -549,6 +676,12 @@ CELERY_BEAT_SCHEDULE = {
 
 Busca a mensagem, envia via `WahaMessageAdapter.send_message()` e atualiza o status para `sent`.
 
+### `sync_contacts`
+
+Executada sob demanda (quando o usuário ativa sincronização). Busca os contatos da sessão Waha do usuário, filtra duplicatas e persiste os novos contatos no banco associando-os ao usuário.
+
+**Trigger:** Chamada via `EnableSyncContactsUseCase` quando usuário ativa essa permissão.
+
 ### Fluxo completo de envio automático
 
 ```
@@ -560,6 +693,23 @@ Celery Beat (a cada 60s)
              ├─ Busca mensagem
              ├─ Envia via Waha API (POST /api/sendText)
              └─ status → "sent"
+```
+
+### Fluxo de sincronização de contatos
+
+```
+Usuário (POST /users/{id} com ativação)
+  └─ EnableSyncContactsUseCase
+       ├─ Valida usuário e permissão
+       ├─ Dispara sync_contacts via Celery
+       └─ status → access_contacts = True
+
+Celery Worker
+  └─ sync_contacts(user_id)
+       ├─ SyncContactsUserUseCase
+       ├─ Busca contatos via Waha API
+       ├─ Filtra e salva no banco
+       └─ Contatos disponíveis em /contacts/list/sync-contacts
 ```
 
 ---
@@ -673,33 +823,46 @@ WAHA_API_KEY=sua-chave-waha
 Linha do tempo do desenvolvimento, da fundação do projeto até o estado atual e os próximos passos.
 
 ### ✅ Fase 1 — Fundação da arquitetura
-- [x] Definição da arquitetura em camadas (Domain → Application → Infrastructure → API)
-- [x] Estruturação do projeto Django com Django Ninja
-- [x] Configuração do container de injeção de dependências (`dependency-injector`)
-- [x] Definição das exceções de domínio (`BaseDomainException`, `FieldRequiredException`)
+- [✅] Definição da arquitetura em camadas (Domain → Application → Infrastructure → API)
+- [✅] Estruturação do projeto Django com Django Ninja
+- [✅] Configuração do container de injeção de dependências (`dependency-injector`)
+- [✅] Definição das exceções de domínio (`BaseDomainException`, `FieldRequiredException`)
 
 ### ✅ Fase 2 — Módulo de Usuários
-- [x] Modelagem de `UserEntity` e `RefreshTokenEntity`
-- [x] Cadastro de usuário com hash de senha (bcrypt)
-- [x] Login com geração de `access_token` (JWT) e `refresh_token`
-- [x] Middleware de autenticação (`AuthBearer`)
-- [x] Soft delete de usuários
+- [✅] Modelagem de `UserEntity` e `RefreshTokenEntity`
+- [✅] Cadastro de usuário com hash de senha (bcrypt)
+- [✅] Login com geração de `access_token` (JWT) e `refresh_token`
+- [✅] Middleware de autenticação (`AuthBearer`)
+- [✅] Soft delete de usuários
 
 ### ✅ Fase 3 — Integração com WhatsApp (Waha API)
-- [x] Adaptador `WahaMessageAdapter` (criação/início de sessão, status)
-- [x] Geração de QR code para conexão do WhatsApp
-- [x] Geração de código de verificação para conexão alternativa
+- [✅] Adaptador `WahaMessageAdapter` (criação/início de sessão, status)
+- [✅] Geração de QR code para conexão do WhatsApp
+- [✅] Geração de código de verificação para conexão alternativa
 
 ### ✅ Fase 4 — Módulo de Mensagens
-- [x] Modelagem de `MessageEntity` e `ScheduledAtTime`
-- [x] Agendamento de mensagens (status `pending`)
-- [x] Consulta de mensagens por ID e por número
+- [✅] Modelagem de `MessageEntity` e `ScheduledAtTime`
+- [✅] Agendamento de mensagens (status `pending`)
+- [✅] Consulta de mensagens por ID e por número
 
 ### ✅ Fase 5 — Processamento Assíncrono
-- [x] Configuração do Celery + Redis como broker
-- [x] Task `check_message_schedule` (verificação periódica via Celery Beat)
-- [x] Task `send_message` (envio efetivo via Waha API)
-- [x] Ciclo de status automático: `pending → process → sent`
+- [✅] Configuração do Celery + Redis como broker
+- [✅] Task `check_message_schedule` (verificação periódica via Celery Beat)
+- [✅] Task `send_message` (envio efetivo via Waha API)
+- [✅] Ciclo de status automático: `pending → process → sent`
+
+### ✅ Fase 6 — Módulo de Contatos
+- [✅] Modelagem de `ContactEntity`
+- [✅] Sincronização de contatos do WhatsApp via Waha API
+- [✅] Filtragem de contatos já existentes (sem duplicatas)
+- [✅] Listagem de contatos por usuário
+- [✅] Consulta de contato por ID e por número
+- [✅] Task `sync_contacts` (sincronização via Celery)
+
+### ✅ Fase 7 — Controle de Permissões
+- [✅] Atributo `access_contacts` em UserEntity
+- [✅] Caso de uso `EnableSyncContactsUseCase` para ativação de sincronização
+- [✅] Endpoints protegidos por JWT para operações de contato
 
 ### 🔜 Próximos Passos
 - [ ] Testes unitários e de integração para domínio e casos de uso
@@ -708,6 +871,8 @@ Linha do tempo do desenvolvimento, da fundação do projeto até o estado atual 
 - [ ] Cache de leitura com Redis
 - [ ] Reenvio automático em caso de falha no envio (retry/backoff)
 - [ ] Expansão da documentação da API (exemplos e descrições no Swagger)
+- [ ] Validação adicional de inputs em endpoints públicos
+- [ ] Tratamento de erros melhorado com respostas mais descritivas
 
 ---
 
