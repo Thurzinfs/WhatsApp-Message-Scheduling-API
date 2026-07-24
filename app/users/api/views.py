@@ -107,7 +107,7 @@ def enable_permission_sync_contact(request, id: UUID):
     return 200, UserOutSchema.from_domain(user)
 
 
-@contact_router.get('/', response={200: None}, auth=AuthBearer())
+@contact_router.get('/sync', response={200: None}, auth=AuthBearer())
 @atomic
 def sync_contacts(request):
     task = container.users.task_sync_adapter()
@@ -116,7 +116,7 @@ def sync_contacts(request):
     return 200, None
 
 
-@contact_router.get('/sync-contacts', response={200: List[ContactOutSchema]}, auth=AuthBearer())
+@contact_router.get('/list/sync-contacts', response={200: List[ContactOutSchema]}, auth=AuthBearer())
 def list_contacts_by_user(request):
     use_case = container.users.list_contacts_by_user_use_case()
 
@@ -127,6 +127,23 @@ def list_contacts_by_user(request):
         for contact in contacts
     ]
 
+
+@contact_router.get('/id', response={200: ContactOutSchema})
+def response_contact_by_id_router(request, id: UUID):
+    use_case = container.users.response_contact_by_id()
+
+    contact = use_case.execute(id)
+
+    return 200, ContactOutSchema.from_domain(contact)
+
+
+@contact_router.get('/', response={200: ContactOutSchema})
+def response_contact_by_number(request, number: str):
+    use_case = container.users.response_contact_by_number()
+
+    contact = use_case.execute(number)
+
+    return 200, ContactOutSchema.from_domain(contact)
 
 
 @auth_router.post('/login', response={201: LoginOutSchema})
