@@ -97,12 +97,12 @@ def delete_user(request, id: UUID):
     return 200, UserOutSchema.from_domain(user)
 
 
-@router.patch('/{id}', response={200: UserOutSchema})
+@router.patch('/', response={200: UserOutSchema}, auth=AuthBearer())
 @atomic
-def enable_permission_sync_contact(request, id: UUID):
+def enable_permission_sync_contact(request):
     use_case = container.users.enable_sync_contacts_use_case()
 
-    user = use_case.execute(id)
+    user = use_case.execute(request.auth.id)
 
     return 200, UserOutSchema.from_domain(user)
 
@@ -128,7 +128,7 @@ def list_contacts_by_user(request):
     ]
 
 
-@contact_router.get('/id', response={200: ContactOutSchema})
+@contact_router.get('/id', response={200: ContactOutSchema}, auth=AuthBearer())
 def response_contact_by_id_router(request, id: UUID):
     use_case = container.users.response_contact_by_id()
 
@@ -137,7 +137,7 @@ def response_contact_by_id_router(request, id: UUID):
     return 200, ContactOutSchema.from_domain(contact)
 
 
-@contact_router.get('/', response={200: ContactOutSchema})
+@contact_router.get('/', response={200: ContactOutSchema}, auth=AuthBearer())
 def response_contact_by_number(request, number: str):
     use_case = container.users.response_contact_by_number()
 

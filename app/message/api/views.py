@@ -27,7 +27,7 @@ def register_message(request, data: MessageInSchema):
     return 201, MessageOutSchema.from_domain(message)
 
 
-@router.get('/list', response={200: List[MessageOutSchema]})
+@router.get('/list', response={200: List[MessageOutSchema]}, auth=AuthBearer())
 def list_messages(request, number: str):
     use_case = container.messages.list_messages_by_number()
 
@@ -36,7 +36,7 @@ def list_messages(request, number: str):
     return 200, [MessageOutSchema.from_domain(message) for message in messages]
 
 
-@router.get('/{id}', response={200: MessageOutSchema})
+@router.get('/{id}', response={200: MessageOutSchema}, auth=AuthBearer())
 def response_message_by_id(request, id: UUID):
     use_case = container.messages.response_message_by_id()
 
