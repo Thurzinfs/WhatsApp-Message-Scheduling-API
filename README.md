@@ -137,7 +137,7 @@ agendador_whatsapp/
 │       ├── domain/                  # Entities, Repositories, Services
 │       ├── application/             # Use Cases e DTOs
 │       ├── infrastructure/          # Models ORM, Repository, Services
-│       ├── api/                     # Views, Schemas, AuthBearer, DI
+│       ├── api/                     # Views, Schemas, AuthCookie, DI
 │       └── migrations/
 │
 ├── core/                            # Utilitários compartilhados
@@ -643,7 +643,7 @@ O sistema utiliza **JWT (Bearer Token)** para autenticação e **Refresh Token**
 }
 ```
 
-O middleware `AuthBearer` decodifica o JWT, busca o usuário no banco e injeta o objeto ORM em `request.auth`.
+O middleware `AuthCookie` decodifica o JWT, busca o usuário no banco e injeta o objeto ORM em `request.auth`.
 
 **Endpoints protegidos:**
 - `GET /auth/me`
@@ -732,7 +732,7 @@ class AppContainer(DeclarativeContainer):
 **Uso em views:**
 
 ```python
-@router.post('/', response={201: MessageOutSchema}, auth=AuthBearer())
+@router.post('/', response={201: MessageOutSchema}, auth=AuthCookie())
 def register_message(request, data: MessageInSchema):
     use_case = container.messages.register_message_use_case()
     message = use_case.execute(data.to_dto(), request.auth.id)
@@ -832,7 +832,7 @@ Linha do tempo do desenvolvimento, da fundação do projeto até o estado atual 
 - [✅] Modelagem de `UserEntity` e `RefreshTokenEntity`
 - [✅] Cadastro de usuário com hash de senha (bcrypt)
 - [✅] Login com geração de `access_token` (JWT) e `refresh_token`
-- [✅] Middleware de autenticação (`AuthBearer`)
+- [✅] Middleware de autenticação (`AuthCookie`)
 - [✅] Soft delete de usuários
 
 ### ✅ Fase 3 — Integração com WhatsApp (Waha API)
