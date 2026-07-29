@@ -2,10 +2,11 @@ import base64
 from typing import List
 from uuid import UUID
 
+from django.http import HttpResponse
 from ninja import Router
 from pydantic import EmailStr
 
-from app.users.api.bearer import AuthBearer
+from app.users.api.cookie import AuthCookie
 from app.users.api.schemas import (
     ContactOutSchema,
     LoginInSchema,
@@ -15,6 +16,7 @@ from app.users.api.schemas import (
     UserInSchema,
     UserOutSchema,
 )
+from config import settings
 from config.dependencies import container
 
 from django.db.transaction import atomic
@@ -58,7 +60,7 @@ def response_user(request, id: UUID):
 
 
 @router.get(
-    '/login/qr-code', response={200: QrCodeOutSchema}, auth=AuthBearer()
+    '/login/qr-code', response={200: QrCodeOutSchema}, auth=AuthCookie()
 )
 def login_qrcode_waha(request):
     use_case = container.users.login_qrcode_waha_use_case()
@@ -77,7 +79,7 @@ def login_qrcode_waha(request):
 @router.get(
     '/login/request-code',
     response={200: RequestCodeOutSchema},
-    auth=AuthBearer(),
+    auth=AuthCookie(),
 )
 def login_code_waha(request):
     use_case = container.users.login_code_waha_use_case()
@@ -97,7 +99,7 @@ def delete_user(request, id: UUID):
     return 200, UserOutSchema.from_domain(user)
 
 
-@router.patch('/', response={200: UserOutSchema}, auth=AuthBearer())
+@router.patch('/', response={200: UserOutSchema}, auth=AuthCookie())
 @atomic
 def enable_permission_sync_contact(request):
     use_case = container.users.enable_sync_contacts_use_case()
@@ -107,7 +109,7 @@ def enable_permission_sync_contact(request):
     return 200, UserOutSchema.from_domain(user)
 
 
-@contact_router.get('/sync', response={200: None}, auth=AuthBearer())
+@contact_router.get('/sync', response={200: None}, auth=AuthCookie())
 @atomic
 def sync_contacts(request):
     task = container.users.task_sync_adapter()
@@ -116,7 +118,7 @@ def sync_contacts(request):
     return 200, None
 
 
-@contact_router.get('/list/sync-contacts', response={200: List[ContactOutSchema]}, auth=AuthBearer())
+@contact_router.get('/list/sync-contacts', response={200: List[ContactOutSchema]}, auth=AuthCookie())
 def list_contacts_by_user(request):
     use_case = container.users.list_contacts_by_user_use_case()
 
@@ -128,7 +130,7 @@ def list_contacts_by_user(request):
     ]
 
 
-@contact_router.get('/id', response={200: ContactOutSchema}, auth=AuthBearer())
+@contact_router.get('/id', response={200: ContactOutSchema}, auth=AuthCookie())
 def response_contact_by_id_router(request, id: UUID):
     use_case = container.users.response_contact_by_id()
 
@@ -137,7 +139,7 @@ def response_contact_by_id_router(request, id: UUID):
     return 200, ContactOutSchema.from_domain(contact)
 
 
-@contact_router.get('/', response={200: ContactOutSchema}, auth=AuthBearer())
+@contact_router.get('/', response={200: ContactOutSchema}, auth=AuthCookie())
 def response_contact_by_number(request, number: str):
     use_case = container.users.response_contact_by_number()
 
@@ -146,18 +148,36 @@ def response_contact_by_number(request, number: str):
     return 200, ContactOutSchema.from_domain(contact)
 
 
-@auth_router.post('/login', response={201: LoginOutSchema})
-def login_user(request, data: LoginInSchema):
+@auth_router.post('/login', response={201: str})
+def login_user(request, data: LoginInSchema, response: HttpResponse):
     dto = data.to_dto()
 
     use_case = container.users.login_use_case()
 
-    user = use_case.execute(dto)
+    token = use_case.execute(dto)
 
-    return 201, LoginOutSchema.from_domain(user)
+    response.set_cookie(
+        'access_token',
+        value=token.access_token,
+        httponly=True,
+        secure=True,
+        samesite='Strict',
+        max_age= 60 * settings.JWT_EXP_MINUTES
+    )
+
+    response.set_cookie(
+        'refresh_token',
+        value=token.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite='Strict',
+        max_age=60 * 60 * 24 * settings.JWT_EXP_DAYS
+    )
+
+    return 201, 'User successfully logged in'
 
 
-@auth_router.get('/me', response={200: UserOutSchema}, auth=AuthBearer())
+@auth_router.get('/me', response={200: UserOutSchema}, auth=AuthCookie())
 def request_me(request):
     print(f'OBS: {request.auth.id}')
     return 200, UserOutSchema.from_domain(request.auth)
