@@ -177,6 +177,14 @@ def login_user(request, data: LoginInSchema, response: HttpResponse):
     return 201, 'User successfully logged in'
 
 
+@auth_router.delete('/logout', response={200: str})
+def logout_user(response: HttpResponse):
+    response.delete_cookie('access_token')
+    response.delete_cookie('refresh_token')
+
+    return 200, "User successfully logged out"
+
+
 @auth_router.get('/me', response={200: UserOutSchema}, auth=AuthCookie())
 def request_me(request):
     print(f'OBS: {request.auth.id}')
