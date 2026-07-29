@@ -6,6 +6,7 @@ from app.users.application.use_cases import (
     ListContactsByUserUseCase,
     LoginUseCase,
     LoginWahaForWhatsAppQrCodeUseCase,
+    RefreshTokenUseCase,
     RegisterUserUseCase,
     RequestCodeLoginWhatsAppUseCase,
     ResponseContactByIDUseCase,
@@ -81,6 +82,13 @@ class UserContainer(containers.DeclarativeContainer):
         token_repo=token_repo,
         token_service=token_service,
         hash_service=hash_service,
+    )
+
+    refresh_token_use_case = providers.Factory(
+        RefreshTokenUseCase,
+        user_repo=user_repo,
+        token_repo=token_repo,
+        token_service=token_service,
     )
 
     login_qrcode_waha_use_case = providers.Factory(
