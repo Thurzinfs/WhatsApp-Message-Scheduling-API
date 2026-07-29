@@ -191,6 +191,36 @@ class LoginUseCase:
         )
 
 
+class RefreshTokenUseCase:
+    def __init__(
+        self,
+        user_repo: IUserRepository,
+        token_repo: IRefreshTokenRepository,
+        token_service: ITokenService,
+    ) -> None:
+        self.user_repo = user_repo
+        self.token_repo = token_repo
+        self.token_service = token_service
+
+    def execute(self, token: str):
+        refresh = self.token_repo.find_by_hash(token)
+        if not refresh:
+            raise BaseDomainException('invalid refresh token')
+
+        if refresh.is_valid():
+            raise BaseDomainException('refresh token expired')
+
+        if not refresh.user:
+            raise BaseDomainException('refresh token has no user')
+
+        user = self.user_repo.find_by_id(refresh.user)
+        if not user:
+            raise UserNotFoundException('user not found')
+        
+        new_access_token = self.token_service.generate_access_token(user)
+        return new_access_token
+
+
 class LoginWahaForWhatsAppQrCodeUseCase:
     def __init__(
         self, user_repo: IUserRepository, waha_adapter: IWahaMessageAdapter
