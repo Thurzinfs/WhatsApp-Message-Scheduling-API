@@ -202,7 +202,10 @@ class RefreshTokenUseCase:
         self.token_repo = token_repo
         self.token_service = token_service
 
-    def execute(self, token: str):
+    def execute(self, token: str | None):
+        if not token:
+            raise BaseDomainException('token not found')
+        
         refresh = self.token_repo.find_by_hash(token)
         if not refresh:
             raise BaseDomainException('invalid refresh token')
