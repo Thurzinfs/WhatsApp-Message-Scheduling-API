@@ -9,7 +9,7 @@ from config import settings
 from core.exceptions import BaseDomainException
 
 class AuthCookie(APIKeyCookie):
-    param_name = 'auth_token'
+    param_name = 'access_token'
 
     def authenticate(self, request: HttpRequest, key: str) -> Any | None:
         try:
