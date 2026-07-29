@@ -1,8 +1,9 @@
 import base64
+from os import access
 from typing import List
 from uuid import UUID
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from ninja import Router
 from pydantic import EmailStr
 
@@ -175,6 +176,25 @@ def login_user(request, data: LoginInSchema, response: HttpResponse):
     )
 
     return 201, 'User successfully logged in'
+
+
+@auth_router.post('/refresh', response={200: str})
+def refresh_token_user(request: HttpRequest, response: HttpResponse):
+    raw_refresh = request.COOKIES.get('refresh_token')
+
+    use_case = container.refresh_token_use_case()
+
+    access = use_case.execute(raw_refresh)
+
+    response.set_cookie(
+        'access_token',
+        value=access,
+        httponly=True,
+        secure=True,
+        samesite='Strict',
+        max_age=60 * settings.JWT_EXP_MINUTES
+    )
+    return 200, "Refresh token successfully renewed"
 
 
 @auth_router.delete('/logout', response={200: str})
