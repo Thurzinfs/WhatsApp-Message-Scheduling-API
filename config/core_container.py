@@ -2,6 +2,7 @@ from dependency_injector import containers, providers
 
 from app.message.infrastructure.adapters import WahaMessageAdapter
 from app.message.infrastructure.service import HashService
+from app.users.infrastructure.repository import UserRepository
 
 
 class CoreContainer(containers.DeclarativeContainer):
@@ -12,3 +13,5 @@ class CoreContainer(containers.DeclarativeContainer):
     )
 
     hash_service = providers.Singleton(HashService)
+
+    user_repo = providers.Factory(UserRepository)

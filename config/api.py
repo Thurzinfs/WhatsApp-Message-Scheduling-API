@@ -2,7 +2,9 @@ from ninja import NinjaAPI
 
 from app.message.api.views import router as router_messages
 
-from app.users.api.views import router as router_users, auth_router, contact_router
+from app.users.api.views import router as router_users, contact_router
+
+from app.authentication.api.views import auth_router
 
 
 api = NinjaAPI(title='Scheduled Messages for WhatsApp', docs_url='/docs/')
