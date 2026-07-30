@@ -126,14 +126,21 @@ agendador_whatsapp/
 │   └── dependencies.py              # Inicialização de dependências
 │
 ├── app/
-│   ├── message/                     # 📧 App de Mensagens
+│   ├── authentication/              # App de Autenticação
+│   │   ├── domain/                  # Entities, Repositories, Services
+│   │   ├── application/             # Use Cases e DTOs
+│   │   ├── infrastructure/          # Models ORM, Repository, Services
+│   │   ├── api/                     # Views, Schemas, AuthCookie, DI
+│   │   └── migrations/
+│   │
+│   ├── message/                     # App de Mensagens
 │   │   ├── domain/                  # Entities, Repositories, Value Objects
 │   │   ├── application/             # Use Cases e DTOs
 │   │   ├── infrastructure/          # Models ORM, Repository, Adapters, Tasks
 │   │   ├── api/                     # Views, Schemas, DI
 │   │   └── migrations/
 │   │
-│   └── users/                       # 👤 App de Usuários
+│   └── users/                       # App de Usuários
 │       ├── domain/                  # Entities, Repositories, Services
 │       ├── application/             # Use Cases e DTOs
 │       ├── infrastructure/          # Models ORM, Repository, Services
@@ -231,6 +238,11 @@ class ContactEntity:
 ## 🔄 Casos de Uso
 
 Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pré-condição, cenário de sucesso principal e extensões relevantes.
+
+Os casos de uso estão implementados nos módulos:
+- `app/message/application/use_cases.py`
+- `app/users/application/use_cases.py`
+- `app/authentication/application/use_cases.py`
 
 ### Módulo de Mensagens
 
@@ -403,6 +415,31 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 
 ---
 
+### Módulo de Autenticação
+
+#### UC18 · Autenticar Usuário — `LoginUseCase`
+- **Ator:** Usuário registrado
+- **Objetivo:** Obter acesso autenticado ao sistema
+- **Pré-condição:** Usuário possui conta ativa
+- **Cenário principal:**
+  1. Usuário informa e-mail e senha
+  2. Sistema localiza o usuário pelo e-mail
+  3. Sistema valida a senha informada
+  4. Sistema gera `access_token` (JWT) e `refresh_token`
+  5. Sistema persiste o refresh token e retorna ambos em cookies HTTP-only
+
+#### UC19 · Renovar Access Token — `RefreshTokenUseCase`
+- **Ator:** Usuário com sessão válida
+- **Objetivo:** Renovar o access token usando o refresh token persistido
+- **Pré-condição:** Cookie `refresh_token` presente e válido
+- **Cenário principal:**
+  1. Sistema lê o cookie `refresh_token`
+  2. Valida o refresh token no banco
+  3. Gera um novo `access_token`
+  4. Retorna o novo token no cookie `access_token`
+
+---
+
 ## 🔌 Endpoints da API
 
 **Base URL:** `/api/v1`
@@ -412,8 +449,10 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 
 | Método | Rota | Auth | Status | Descrição |
 |---|---|---|---|---|
-| POST | `/auth/login` | ❌ | 201 | Login e geração de tokens |
-| GET | `/auth/me` | ✅ JWT | 200 | Dados do usuário autenticado |
+| POST | `/auth/login` | ❌ | 201 | Login e criação de cookies de sessão |
+| POST | `/auth/refresh` | ❌ | 200 | Renova o access token usando cookie de refresh |
+| DELETE | `/auth/logout` | ❌ | 200 | Limpa cookies de autenticação |
+| GET | `/auth/me` | ✅ JWT cookie | 200 | Dados do usuário autenticado |
 
 ### Usuários (`/users`)
 
@@ -423,26 +462,26 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 | GET | `/users/{id}` | ❌ | 200 | Obter usuário por ID |
 | GET | `/users/email` | ❌ | 200 | Obter usuário por e-mail |
 | DELETE | `/users/{id}` | ❌ | 200 | Deletar usuário (soft delete) |
-| PATCH | `/users/{id}` | ❌ | 200 | Habilitar sincronização de contatos |
-| GET | `/users/login/qr-code` | ✅ JWT | 200 | Obter QR code do WhatsApp |
-| GET | `/users/login/request-code` | ✅ JWT | 200 | Obter código de verificação |
+| PATCH | `/users/` | ✅ JWT cookie | 200 | Habilitar sincronização de contatos |
+| GET | `/users/login/qr-code` | ✅ JWT cookie | 200 | Obter QR code do WhatsApp |
+| GET | `/users/login/request-code` | ✅ JWT cookie | 200 | Obter código de verificação |
 
 ### Mensagens (`/message`)
 
 | Método | Rota | Auth | Status | Descrição |
 |---|---|---|---|---|
-| POST | `/message/` | ✅ JWT | 201 | Agendar nova mensagem |
-| GET | `/message/{id}` | ❌ | 200 | Obter mensagem por ID |
-| GET | `/message/list` | ❌ | 200 | Listar mensagens por número |
+| POST | `/message/` | ✅ JWT cookie | 201 | Agendar nova mensagem |
+| GET | `/message/{id}` | ✅ JWT cookie | 200 | Obter mensagem por ID |
+| GET | `/message/list` | ✅ JWT cookie | 200 | Listar mensagens por número |
 
 ### Contatos (`/contacts`)
 
 | Método | Rota | Auth | Status | Descrição |
 |---|---|---|---|---|
-| GET | `/contacts/sync` | ✅ JWT | 200 | Sincronizar contatos do WhatsApp |
-| GET | `/contacts/list/sync-contacts` | ✅ JWT | 200 | Listar contatos sincronizados |
-| GET | `/contacts/id` | ❌ | 200 | Obter contato por ID |
-| GET | `/contacts/` | ❌ | 200 | Obter contato por número | 
+| GET | `/contacts/sync` | ✅ JWT cookie | 200 | Sincronizar contatos do WhatsApp |
+| GET | `/contacts/list/sync-contacts` | ✅ JWT cookie | 200 | Listar contatos sincronizados |
+| GET | `/contacts/id` | ✅ JWT cookie | 200 | Obter contato por ID |
+| GET | `/contacts/` | ✅ JWT cookie | 200 | Obter contato por número | 
 
 ### Exemplos de Requisição
 
@@ -457,11 +496,10 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 }
 
 // Response 201
-{
-  "access_token": "eyJhbGc...",
-  "refresh_token": "uuid-aqui-refresh"
-}
+"User successfully logged in"
 ```
+
+> Cookies definidos: `access_token`, `refresh_token`.
 </details>
 
 <details>
@@ -496,7 +534,7 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 
 ```json
 // Request
-// Header: Authorization: Bearer eyJhbGc...
+// Cookies: access_token, refresh_token
 {
   "message": "Olá! Esta é uma mensagem agendada.",
   "scheduled_at": "2024-07-22T15:30:00",
@@ -529,10 +567,10 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 </details>
 
 <details>
-<summary><strong>PATCH /users/{id}</strong></summary>
+<summary><strong>PATCH /users/</strong></summary>
 
 ```json
-// Header: Authorization: Bearer eyJhbGc...
+// Cookies: access_token, refresh_token
 // Response 200
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -553,7 +591,7 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 <summary><strong>GET /contacts/list/sync-contacts</strong></summary>
 
 ```json
-// Header: Authorization: Bearer eyJhbGc...
+// Cookies: access_token, refresh_token
 // Response 200
 [
   {
@@ -625,12 +663,12 @@ Casos de uso descritos em formato resumido (estilo Cockburn): ator, objetivo, pr
 
 ## 🔐 Autenticação
 
-O sistema utiliza **JWT (Bearer Token)** para autenticação e **Refresh Token** para renovação de sessão.
+O sistema utiliza **JWT armazenado em cookie** para autenticação e **Refresh Token** para renovação de sessão.
 
 | Tipo | Validade | Formato | Observações |
 |---|---|---|---|
-| Access Token | 30 minutos | JWT | Enviado via `Authorization: Bearer <token>` |
-| Refresh Token | 7 dias | SHA-256 hash de UUID | Armazenado no BD, pode ser revogado |
+| Access Token | 30 minutos | JWT em cookie | Cookie `access_token`, `httponly`, `secure`, `samesite=Strict` |
+| Refresh Token | 7 dias | UUID + SHA-256 | Cookie `refresh_token`, usado para renovar o access token |
 
 **Payload JWT:**
 
@@ -643,15 +681,25 @@ O sistema utiliza **JWT (Bearer Token)** para autenticação e **Refresh Token**
 }
 ```
 
-O middleware `AuthCookie` decodifica o JWT, busca o usuário no banco e injeta o objeto ORM em `request.auth`.
+O security scheme `AuthCookie` decodifica o JWT presente no cookie `access_token`, busca o usuário no banco e injeta o objeto ORM em `request.auth`.
 
-**Endpoints protegidos:**
+**Endpoints protegidos por cookie de autenticação:**
 - `GET /auth/me`
 - `GET /users/login/qr-code`
 - `GET /users/login/request-code`
+- `PATCH /users/`
 - `POST /message/`
+- `GET /message/{id}`
+- `GET /message/list`
 - `GET /contacts/sync`
 - `GET /contacts/list/sync-contacts`
+- `GET /contacts/id`
+- `GET /contacts/`
+
+**Endpoints de sessão / token:**
+- `POST /auth/login` — cria os cookies `access_token` e `refresh_token`
+- `POST /auth/refresh` — renova o cookie `access_token` usando `refresh_token`
+- `DELETE /auth/logout` — remove os cookies de autenticação
 
 ---
 
@@ -750,8 +798,8 @@ O projeto utiliza **[uv](https://docs.astral.sh/uv/)** como gerenciador de pacot
 - Python ≥ 3.12
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) instalado
 - PostgreSQL
-- Redis
-- Docker e Docker Compose (opcional, recomendado para subir os serviços de apoio)
+- Redis (broker do Celery)
+- Docker e Docker Compose (opcional)
 
 ### Rodando com uv
 
@@ -783,9 +831,11 @@ uv run celery -A config beat -l info
 # Configure as variáveis de ambiente
 cp .env.example .env
 
-# Suba os containers (Django, PostgreSQL, Redis, Celery Worker, Celery Beat)
+# Suba os containers (Django, PostgreSQL, Waha, Celery Worker, Celery Beat)
 docker compose up --build
 ```
+
+> Observação: o arquivo `docker-compose.yaml` atual não declara um serviço Redis. Garanta que `CELERY_BROKER_URL` aponte para um Redis acessível, seja externo ou adicionado ao compose.
 
 A documentação interativa (Swagger) fica disponível em `http://localhost:8000/api/v1/docs`.
 
@@ -796,8 +846,7 @@ A documentação interativa (Swagger) fica disponível em `http://localhost:8000
 ```bash
 # Django
 SECRET_KEY=sua-chave-secreta
-DEBUG=False
-ALLOWED_HOSTS=localhost,127.0.0.1
+DEBUG=True
 
 # Database
 DB_NAME=agendador_whatsapp
@@ -815,6 +864,8 @@ CELERY_BROKER_URL=redis://redis:6379/0
 WAHA_BASE_URL=http://waha-api:3000
 WAHA_API_KEY=sua-chave-waha
 ```
+
+> Nota: o host do banco de dados é definido como `database` no `config/settings.py` quando executado via Docker Compose.
 
 ---
 
