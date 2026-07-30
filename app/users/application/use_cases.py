@@ -4,8 +4,6 @@ from app.message.domain.i_adapters import IWahaMessageAdapter
 from app.message.domain.servicies import IHashService
 from app.users.application.dto import (
     ContactOutDTO,
-    LoginInDTO,
-    LoginOutDTO,
     RequestCodeOutDTO,
     UserInDTO,
     UserOutDTO,
@@ -15,10 +13,9 @@ from app.users.domain.entities import UserEntity
 from app.users.domain.exceptions import ContactNotFoundException, UserNotFoundException
 from app.users.domain.repositories import (
     IContactsRepository,
-    IRefreshTokenRepository,
     IUserRepository,
 )
-from app.users.domain.servicies import IFilterContactsService, ITokenService
+from app.users.domain.servicies import IFilterContactsService
 from app.users.domain.value_objects import PhoneNumberVO
 from core.exceptions import BaseDomainException
 
@@ -159,69 +156,6 @@ class DeactiveUserUseCase:
         self.user_repo.save(user)
 
         return UserOutDTO.from_domain(user)
-
-
-class LoginUseCase:
-    def __init__(
-        self,
-        user_repo: IUserRepository,
-        token_repo: IRefreshTokenRepository,
-        token_service: ITokenService,
-        hash_service: IHashService,
-    ) -> None:
-        self.user_repo = user_repo
-        self.token_repo = token_repo
-        self.token_service = token_service
-        self.hash_service = hash_service
-
-    def execute(self, dto: LoginInDTO):
-        user = self.user_repo.find_by_email(dto.email)
-        if not user:
-            raise UserNotFoundException('user not found')
-
-        if not self.hash_service.verify(dto.password, user.password):
-            raise BaseDomainException('invalid credentials')
-
-        access_token = self.token_service.generate_access_token(user)
-        (raw_refresh, entity) = self.token_service.generate_refresh_token(user)
-        self.token_repo.save(entity)
-
-        return LoginOutDTO(
-            access_token=access_token, refresh_token=raw_refresh
-        )
-
-
-class RefreshTokenUseCase:
-    def __init__(
-        self,
-        user_repo: IUserRepository,
-        token_repo: IRefreshTokenRepository,
-        token_service: ITokenService,
-    ) -> None:
-        self.user_repo = user_repo
-        self.token_repo = token_repo
-        self.token_service = token_service
-
-    def execute(self, token: str | None):
-        if not token:
-            raise BaseDomainException('token not found')
-        
-        refresh = self.token_repo.find_by_hash(token)
-        if not refresh:
-            raise BaseDomainException('invalid refresh token')
-
-        if refresh.is_valid():
-            raise BaseDomainException('refresh token expired')
-
-        if not refresh.user:
-            raise BaseDomainException('refresh token has no user')
-
-        user = self.user_repo.find_by_id(refresh.user)
-        if not user:
-            raise UserNotFoundException('user not found')
-        
-        new_access_token = self.token_service.generate_access_token(user)
-        return new_access_token
 
 
 class LoginWahaForWhatsAppQrCodeUseCase:

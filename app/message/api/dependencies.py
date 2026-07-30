@@ -9,16 +9,12 @@ from app.message.application.use_cases import (
 )
 from app.message.infrastructure.adapters import (
     TaskSendMessageAdapter,
-    WahaMessageAdapter,
 )
 from app.message.infrastructure.repository import MessagesRepository
-from app.users.infrastructure.repository import UserRepository
 
 
 class MessageContainer(containers.DeclarativeContainer):
     core = providers.DependenciesContainer()
-
-    user_repo = providers.Factory(UserRepository)
 
     message_repo = providers.Factory(MessagesRepository)
 
@@ -33,7 +29,7 @@ class MessageContainer(containers.DeclarativeContainer):
     )
 
     register_message_use_case = providers.Factory(
-        RegisterMessageUseCase, message_repo=message_repo, user_repo=user_repo
+        RegisterMessageUseCase, message_repo=message_repo, user_repo=core.user_repo
     )
 
     response_message_by_id = providers.Factory(

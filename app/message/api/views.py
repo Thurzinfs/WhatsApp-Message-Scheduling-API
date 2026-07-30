@@ -9,7 +9,7 @@ from app.message.api.dependencies import MessageContainer
 
 from django.db.transaction import atomic
 
-from app.users.api.cookie import AuthCookie
+from app.authentication.api.cookie import AuthCookie
 from config.dependencies import container
 
 router = Router()

@@ -69,16 +69,6 @@ class ContactUpdateInDTO(BaseModel):
     name: Optional[str] = None
 
 
-class LoginInDTO(BaseModel):
-    email: str
-    password: str
-
-
-class LoginOutDTO(BaseModel):
-    access_token: str
-    refresh_token: str
-
-
 class QrCodeOutDTO(BaseModel):
     connected: bool
     qr_code_base64: Optional[str] = None

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List
 from uuid import UUID
 
-from app.users.domain.entities import ContactEntity, RefreshTokenEntity, UserEntity
+from app.users.domain.entities import ContactEntity, UserEntity
 from app.users.domain.value_objects import PhoneNumberVO
 
 
@@ -47,18 +47,4 @@ class IContactsRepository(ABC):
 
     @abstractmethod
     def list_by_user(self, id: UUID) -> List[ContactEntity]:
-        ...
-
-
-class IRefreshTokenRepository(ABC):
-    @abstractmethod
-    def save(self, entity: RefreshTokenEntity) -> RefreshTokenEntity:
-        ...
-
-    @abstractmethod
-    def find_by_hash(self, hash: str) -> RefreshTokenEntity | None:
-        ...
-
-    @abstractmethod
-    def revoke_all_by_user(self, user_id: UUID) -> None:
         ...
