@@ -130,7 +130,7 @@ agendador_whatsapp/
 │   │   ├── domain/                  # Entities, Repositories, Services
 │   │   ├── application/             # Use Cases e DTOs
 │   │   ├── infrastructure/          # Models ORM, Repository, Services
-│   │   ├── api/                     # Views, Schemas, AuthCookie, DI
+│   │   ├── api/                     # Views, Schemas, AuthBearer, DI
 │   │   └── migrations/
 │   │
 │   ├── message/                     # App de Mensagens
@@ -144,7 +144,7 @@ agendador_whatsapp/
 │       ├── domain/                  # Entities, Repositories, Services
 │       ├── application/             # Use Cases e DTOs
 │       ├── infrastructure/          # Models ORM, Repository, Services
-│       ├── api/                     # Views, Schemas, AuthCookie, DI
+│       ├── api/                     # Views, Schemas, AuthBearer, DI
 │       └── migrations/
 │
 ├── core/                            # Utilitários compartilhados
@@ -318,7 +318,7 @@ Os casos de uso estão implementados nos módulos:
   2. Sistema localiza o usuário pelo e-mail
   3. Sistema valida a senha informada
   4. Sistema gera `access_token` (30 min) e `refresh_token` (7 dias)
-  5. Sistema persiste o refresh token e retorna ambos ao usuário
+  5. Sistema persiste o refresh token e retorna ambos no corpo da resposta
 - **Extensões:** *2a.* Usuário não encontrado → `UserNotFoundException` · *3a.* Senha inválida → `BaseDomainException`
 
 #### UC08 · Consultar Usuário por ID — `ResponseUserByIDUseCase`
@@ -426,17 +426,17 @@ Os casos de uso estão implementados nos módulos:
   2. Sistema localiza o usuário pelo e-mail
   3. Sistema valida a senha informada
   4. Sistema gera `access_token` (JWT) e `refresh_token`
-  5. Sistema persiste o refresh token e retorna ambos em cookies HTTP-only
+  5. Sistema persiste o refresh token e retorna ambos no corpo da resposta
 
 #### UC19 · Renovar Access Token — `RefreshTokenUseCase`
 - **Ator:** Usuário com sessão válida
 - **Objetivo:** Renovar o access token usando o refresh token persistido
-- **Pré-condição:** Cookie `refresh_token` presente e válido
+- **Pré-condição:** envio do `refresh_token` presente e válido
 - **Cenário principal:**
-  1. Sistema lê o cookie `refresh_token`
+  1. Sistema lê o `refresh_token`
   2. Valida o refresh token no banco
   3. Gera um novo `access_token`
-  4. Retorna o novo token no cookie `access_token`
+  4. Retorna o novo token na resposta
 
 ---
 
@@ -449,10 +449,9 @@ Os casos de uso estão implementados nos módulos:
 
 | Método | Rota | Auth | Status | Descrição |
 |---|---|---|---|---|
-| POST | `/auth/login` | ❌ | 201 | Login e criação de cookies de sessão |
-| POST | `/auth/refresh` | ❌ | 200 | Renova o access token usando cookie de refresh |
-| DELETE | `/auth/logout` | ❌ | 200 | Limpa cookies de autenticação |
-| GET | `/auth/me` | ✅ JWT cookie | 200 | Dados do usuário autenticado |
+| POST | `/auth/login` | ❌ | 200 | Login e retorno de access token e refresh token |
+| POST | `/auth/refresh` | ❌ | 200 | Renova o access token usando o refresh token |
+| GET | `/auth/me` | ✅ Bearer token | 200 | Dados do usuário autenticado |
 
 ### Usuários (`/users`)
 
@@ -462,26 +461,26 @@ Os casos de uso estão implementados nos módulos:
 | GET | `/users/{id}` | ❌ | 200 | Obter usuário por ID |
 | GET | `/users/email` | ❌ | 200 | Obter usuário por e-mail |
 | DELETE | `/users/{id}` | ❌ | 200 | Deletar usuário (soft delete) |
-| PATCH | `/users/` | ✅ JWT cookie | 200 | Habilitar sincronização de contatos |
-| GET | `/users/login/qr-code` | ✅ JWT cookie | 200 | Obter QR code do WhatsApp |
-| GET | `/users/login/request-code` | ✅ JWT cookie | 200 | Obter código de verificação |
+| PATCH | `/users/` | ✅ Bearer token | 200 | Habilitar sincronização de contatos |
+| GET | `/users/login/qr-code` | ✅ Bearer token | 200 | Obter QR code do WhatsApp |
+| GET | `/users/login/request-code` | ✅ Bearer token | 200 | Obter código de verificação |
 
 ### Mensagens (`/message`)
 
 | Método | Rota | Auth | Status | Descrição |
 |---|---|---|---|---|
-| POST | `/message/` | ✅ JWT cookie | 201 | Agendar nova mensagem |
-| GET | `/message/{id}` | ✅ JWT cookie | 200 | Obter mensagem por ID |
-| GET | `/message/list` | ✅ JWT cookie | 200 | Listar mensagens por número |
+| POST | `/message/` | ✅ Bearer token | 201 | Agendar nova mensagem |
+| GET | `/message/{id}` | ✅ Bearer token | 200 | Obter mensagem por ID |
+| GET | `/message/list` | ✅ Bearer token | 200 | Listar mensagens por número |
 
 ### Contatos (`/contacts`)
 
 | Método | Rota | Auth | Status | Descrição |
 |---|---|---|---|---|
-| GET | `/contacts/sync` | ✅ JWT cookie | 200 | Sincronizar contatos do WhatsApp |
-| GET | `/contacts/list/sync-contacts` | ✅ JWT cookie | 200 | Listar contatos sincronizados |
-| GET | `/contacts/id` | ✅ JWT cookie | 200 | Obter contato por ID |
-| GET | `/contacts/` | ✅ JWT cookie | 200 | Obter contato por número | 
+| GET | `/contacts/sync` | ✅ Bearer token | 200 | Sincronizar contatos do WhatsApp |
+| GET | `/contacts/list/sync-contacts` | ✅ Bearer token | 200 | Listar contatos sincronizados |
+| GET | `/contacts/id` | ✅ Bearer token | 200 | Obter contato por ID |
+| GET | `/contacts/` | ✅ Bearer token | 200 | Obter contato por número |
 
 ### Exemplos de Requisição
 
@@ -495,11 +494,14 @@ Os casos de uso estão implementados nos módulos:
   "password": "senha123"
 }
 
-// Response 201
-"User successfully logged in"
+// Response 200
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "c1e4f21d-1234-4cde-9c8b-870e9f123456"
+}
 ```
 
-> Cookies definidos: `access_token`, `refresh_token`.
+> O access token deve ser enviado no header `Authorization: Bearer <token>`.
 </details>
 
 <details>
@@ -534,7 +536,7 @@ Os casos de uso estão implementados nos módulos:
 
 ```json
 // Request
-// Cookies: access_token, refresh_token
+// Header: Authorization: Bearer <access_token>
 {
   "message": "Olá! Esta é uma mensagem agendada.",
   "scheduled_at": "2024-07-22T15:30:00",
@@ -570,7 +572,7 @@ Os casos de uso estão implementados nos módulos:
 <summary><strong>PATCH /users/</strong></summary>
 
 ```json
-// Cookies: access_token, refresh_token
+// Header: Authorization: Bearer <access_token>
 // Response 200
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -591,7 +593,7 @@ Os casos de uso estão implementados nos módulos:
 <summary><strong>GET /contacts/list/sync-contacts</strong></summary>
 
 ```json
-// Cookies: access_token, refresh_token
+// Header: Authorization: Bearer <access_token>
 // Response 200
 [
   {
@@ -663,12 +665,12 @@ Os casos de uso estão implementados nos módulos:
 
 ## 🔐 Autenticação
 
-O sistema utiliza **JWT armazenado em cookie** para autenticação e **Refresh Token** para renovação de sessão.
+O sistema utiliza **JWT via header `Authorization: Bearer`** para autenticação e **Refresh Token** para renovação de sessão.
 
 | Tipo | Validade | Formato | Observações |
 |---|---|---|---|
-| Access Token | 30 minutos | JWT em cookie | Cookie `access_token`, `httponly`, `secure`, `samesite=Strict` |
-| Refresh Token | 7 dias | UUID + SHA-256 | Cookie `refresh_token`, usado para renovar o access token |
+| Access Token | 30 minutos | JWT | Enviado no header `Authorization: Bearer <token>` |
+| Refresh Token | 7 dias | UUID + SHA-256 | Retornado em `POST /auth/login` e esperado o `refresh_token` em `POST /auth/refresh` |
 
 **Payload JWT:**
 
@@ -681,9 +683,9 @@ O sistema utiliza **JWT armazenado em cookie** para autenticação e **Refresh T
 }
 ```
 
-O security scheme `AuthCookie` decodifica o JWT presente no cookie `access_token`, busca o usuário no banco e injeta o objeto ORM em `request.auth`.
+O security scheme `AuthBearer` decodifica o JWT presente no header `Authorization`, busca o usuário no banco e injeta o objeto ORM em `request.auth`.
 
-**Endpoints protegidos por cookie de autenticação:**
+**Endpoints protegidos por token Bearer:**
 - `GET /auth/me`
 - `GET /users/login/qr-code`
 - `GET /users/login/request-code`
@@ -697,9 +699,8 @@ O security scheme `AuthCookie` decodifica o JWT presente no cookie `access_token
 - `GET /contacts/`
 
 **Endpoints de sessão / token:**
-- `POST /auth/login` — cria os cookies `access_token` e `refresh_token`
-- `POST /auth/refresh` — renova o cookie `access_token` usando `refresh_token`
-- `DELETE /auth/logout` — remove os cookies de autenticação
+- `POST /auth/login` — retorna `access_token` e `refresh_token`
+- `POST /auth/refresh` — renova o access token usando `refresh_token` enviado
 
 ---
 
@@ -780,7 +781,7 @@ class AppContainer(DeclarativeContainer):
 **Uso em views:**
 
 ```python
-@router.post('/', response={201: MessageOutSchema}, auth=AuthCookie())
+@router.post('/', response={201: MessageOutSchema}, auth=AuthBearer())
 def register_message(request, data: MessageInSchema):
     use_case = container.messages.register_message_use_case()
     message = use_case.execute(data.to_dto(), request.auth.id)
@@ -883,7 +884,7 @@ Linha do tempo do desenvolvimento, da fundação do projeto até o estado atual 
 - [✅] Modelagem de `UserEntity` e `RefreshTokenEntity`
 - [✅] Cadastro de usuário com hash de senha (bcrypt)
 - [✅] Login com geração de `access_token` (JWT) e `refresh_token`
-- [✅] Middleware de autenticação (`AuthCookie`)
+- [✅] Middleware de autenticação (`AuthBearer`)
 - [✅] Soft delete de usuários
 
 ### ✅ Fase 3 — Integração com WhatsApp (Waha API)

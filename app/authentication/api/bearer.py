@@ -2,19 +2,18 @@ from typing import Any
 
 from django.http import HttpRequest
 import jwt
-from ninja.security import APIKeyCookie
+from ninja.security import HttpBearer
 
 from app.users.infrastructure.models import User
 from config import settings
 from core.exceptions import BaseDomainException
 
-class AuthCookie(APIKeyCookie):
-    param_name = 'access_token'
 
-    def authenticate(self, request: HttpRequest, key: str) -> Any | None:
+class AuthBearer(HttpBearer):
+    def authenticate(self, request: HttpRequest, token: str) -> Any | None:
         try:
             payload = jwt.decode(
-                key, 
+                token, 
                 settings.JWT_SECRET_KEY, 
                 algorithms=[settings.JWT_ALGORITHIM]
             )
@@ -27,3 +26,4 @@ class AuthCookie(APIKeyCookie):
 
         except (jwt.PyJWTError, User.DoesNotExist):
             return None
+    

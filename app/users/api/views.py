@@ -5,7 +5,7 @@ from uuid import UUID
 from ninja import Router
 from pydantic import EmailStr
 
-from app.authentication.api.cookie import AuthCookie
+from app.authentication.api.bearer import AuthBearer
 from app.users.api.schemas import (
     ContactOutSchema,
     QrCodeOutSchema,
@@ -54,7 +54,7 @@ def response_user(request, id: UUID):
 
 
 @router.get(
-    '/login/qr-code', response={200: QrCodeOutSchema}, auth=AuthCookie()
+    '/login/qr-code', response={200: QrCodeOutSchema}, auth=AuthBearer()
 )
 def login_qrcode_waha(request):
     use_case = container.users.login_qrcode_waha_use_case()
@@ -73,7 +73,7 @@ def login_qrcode_waha(request):
 @router.get(
     '/login/request-code',
     response={200: RequestCodeOutSchema},
-    auth=AuthCookie(),
+    auth=AuthBearer(),
 )
 def login_code_waha(request):
     use_case = container.users.login_code_waha_use_case()
@@ -93,7 +93,7 @@ def delete_user(request, id: UUID):
     return 200, UserOutSchema.from_domain(user)
 
 
-@router.patch('/', response={200: UserOutSchema}, auth=AuthCookie())
+@router.patch('/', response={200: UserOutSchema}, auth=AuthBearer())
 @atomic
 def enable_permission_sync_contact(request):
     use_case = container.users.enable_sync_contacts_use_case()
@@ -103,7 +103,7 @@ def enable_permission_sync_contact(request):
     return 200, UserOutSchema.from_domain(user)
 
 
-@contact_router.get('/sync', response={200: None}, auth=AuthCookie())
+@contact_router.get('/sync', response={200: None}, auth=AuthBearer())
 @atomic
 def sync_contacts(request):
     task = container.users.task_sync_adapter()
@@ -112,7 +112,7 @@ def sync_contacts(request):
     return 200, None
 
 
-@contact_router.get('/list/sync-contacts', response={200: List[ContactOutSchema]}, auth=AuthCookie())
+@contact_router.get('/list/sync-contacts', response={200: List[ContactOutSchema]}, auth=AuthBearer())
 def list_contacts_by_user(request):
     use_case = container.users.list_contacts_by_user_use_case()
 
@@ -124,7 +124,7 @@ def list_contacts_by_user(request):
     ]
 
 
-@contact_router.get('/id', response={200: ContactOutSchema}, auth=AuthCookie())
+@contact_router.get('/id', response={200: ContactOutSchema}, auth=AuthBearer())
 def response_contact_by_id_router(request, id: UUID):
     use_case = container.users.response_contact_by_id()
 
@@ -133,7 +133,7 @@ def response_contact_by_id_router(request, id: UUID):
     return 200, ContactOutSchema.from_domain(contact)
 
 
-@contact_router.get('/', response={200: ContactOutSchema}, auth=AuthCookie())
+@contact_router.get('/', response={200: ContactOutSchema}, auth=AuthBearer())
 def response_contact_by_number(request, number: str):
     use_case = container.users.response_contact_by_number()
 
